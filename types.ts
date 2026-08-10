@@ -50,29 +50,6 @@ export interface Category extends CosmicObject {
   };
 }
 
-export type ChartType = 'bar' | 'grouped-bar' | 'line' | 'stacked-bar' | 'donut';
-
-export interface ChartSeries {
-  name: string;
-  data: number[];
-}
-
-export interface ChartDatum {
-  name: string;
-  value: number;
-}
-
-export interface ChartFigure {
-  id: string;
-  chart_type: ChartType;
-  title: string;
-  unit?: string;
-  caption?: string;
-  categories?: string[];
-  series?: ChartSeries[];
-  data?: ChartDatum[];
-}
-
 export interface Post extends CosmicObject {
   type: 'posts';
   metadata: {
@@ -82,7 +59,6 @@ export interface Post extends CosmicObject {
     author?: Author;
     category?: Category;
     tags?: string[];
-    charts?: ChartFigure[];
     reading_time?: number | string;
     published_date?: string;
     featured?: boolean;
