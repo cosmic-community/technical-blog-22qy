@@ -3,15 +3,63 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CosmicBadge from '@/components/CosmicBadge';
+import { SITE, siteUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  metadataBase: new URL(siteUrl()),
   title: {
-    default: 'Technical Blog — Engineering deep dives',
-    template: '%s · Technical Blog',
+    default: `${SITE.name} \u2014 Engineering deep dives`,
+    template: `%s \u00b7 ${SITE.name}`,
   },
-  description:
-    'A modern engineering blog covering systems, infrastructure, and machine learning, with in-depth technical writing and data visualizations.',
+  description: SITE.description,
+  applicationName: SITE.name,
+  keywords: [...SITE.keywords],
+  authors: [{ name: SITE.name }],
+  creator: SITE.name,
+  publisher: SITE.name,
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: SITE.name,
+    locale: SITE.locale,
+    url: '/',
+    title: `${SITE.name} \u2014 Engineering deep dives`,
+    description: SITE.description,
+    images: [
+      {
+        url: SITE.defaultOgImage,
+        width: 1200,
+        height: 630,
+        alt: `${SITE.name} \u2014 engineering deep dives on AI, systems, and developer tooling`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${SITE.name} \u2014 Engineering deep dives`,
+    description: SITE.description,
+    site: SITE.twitterHandle,
+    creator: SITE.twitterHandle,
+    images: [SITE.defaultOgImage],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  formatDetection: {
+    telephone: false,
+    address: false,
+    email: false,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
