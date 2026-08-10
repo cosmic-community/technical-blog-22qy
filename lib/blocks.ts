@@ -12,11 +12,52 @@ import 'server-only';
  *
  * See https://www.cosmicjs.com/docs/api/rich-text
  */
+export type BlockEditor = 'rich-text' | 'plain' | 'html';
+
+/**
+ * `editor` is required here on purpose: the renderer's `BlockDefinition`
+ * requires it, so allowing `undefined` to flow through would only push the
+ * type error to the call site. The API response is normalized in `toBlock`
+ * below so this contract always holds.
+ */
 export interface CosmicBlock {
   name: string;
   title?: string;
   content: string;
-  editor?: 'rich-text' | 'plain' | 'html';
+  editor: BlockEditor;
+}
+
+const BLOCK_EDITORS: readonly BlockEditor[] = ['rich-text', 'plain', 'html'];
+
+function isBlockEditor(value: unknown): value is BlockEditor {
+  return typeof value === 'string' && (BLOCK_EDITORS as readonly string[]).includes(value);
+}
+
+/**
+ * Normalize one raw API block.
+ *
+ * A missing or unrecognized `editor` falls back to 'rich-text' rather than
+ * 'html': treating content of unknown provenance as markdown is the safer
+ * default, since it renders as text instead of being injected as raw markup.
+ * Returns null for entries missing the fields the renderer needs.
+ */
+function toBlock(raw: unknown): CosmicBlock | null {
+  if (typeof raw !== 'object' || raw === null) {
+    return null;
+  }
+
+  const candidate = raw as Record<string, unknown>;
+
+  if (typeof candidate.name !== 'string' || typeof candidate.content !== 'string') {
+    return null;
+  }
+
+  return {
+    name: candidate.name,
+    title: typeof candidate.title === 'string' ? candidate.title : undefined,
+    content: candidate.content,
+    editor: isBlockEditor(candidate.editor) ? candidate.editor : 'rich-text',
+  };
 }
 
 /**
@@ -54,7 +95,9 @@ export async function getBlocks(): Promise<CosmicBlock[]> {
       'blocks' in data &&
       Array.isArray((data as { blocks: unknown }).blocks)
     ) {
-      return (data as { blocks: CosmicBlock[] }).blocks;
+      return (data as { blocks: unknown[] }).blocks
+        .map(toBlock)
+        .filter((block): block is CosmicBlock => block !== null);
     }
 
     return [];
