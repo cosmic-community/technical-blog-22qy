@@ -3,6 +3,19 @@ export interface CosmicMedia {
   imgix_url: string;
 }
 
+/**
+ * Cosmic file metafields come back in one of two shapes depending on how the
+ * object was fetched and how the value was written:
+ *
+ *   - a full media object: { url, imgix_url }
+ *   - a bare filename string: "e2632540-...-photo.jpeg"
+ *
+ * The bucket currently returns bare strings for `cover_image` and `avatar`,
+ * so every consumer must go through `resolveMediaUrl()` in `lib/utils.ts`
+ * rather than reaching for `.imgix_url` directly.
+ */
+export type CosmicFile = string | CosmicMedia;
+
 export interface CosmicObject {
   id: string;
   slug: string;
@@ -13,6 +26,7 @@ export interface CosmicObject {
   status?: string;
   created_at?: string;
   modified_at?: string;
+  thumbnail?: string;
 }
 
 export interface Author extends CosmicObject {
@@ -21,7 +35,7 @@ export interface Author extends CosmicObject {
     name?: string;
     role?: string;
     bio?: string;
-    avatar?: CosmicMedia;
+    avatar?: CosmicFile;
     email?: string;
     x_handle?: string;
   };
@@ -64,7 +78,7 @@ export interface Post extends CosmicObject {
   metadata: {
     excerpt?: string;
     content?: string;
-    cover_image?: CosmicMedia;
+    cover_image?: CosmicFile;
     author?: Author;
     category?: Category;
     tags?: string[];
