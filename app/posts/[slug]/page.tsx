@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { RichText } from '@cosmicjs/rich-text';
 import { getAllPosts, getPostBySlug, getRelatedPosts } from '@/lib/cosmic';
+import { getBlocks } from '@/lib/blocks';
 import { formatDate, formatReadingTime } from '@/lib/utils';
 import type { Post } from '@/types';
 
@@ -70,6 +70,9 @@ export default async function PostPage({ params }: PostPageProps) {
   const readingTime = formatReadingTime(post.metadata?.reading_time);
   const tags = post.metadata?.tags ?? [];
 
+  // Block definitions the `{{name /}}` tokens in the body resolve against.
+  const blocks = await getBlocks();
+
   let relatedPosts: Post[] = [];
   try {
     relatedPosts = await getRelatedPosts(post);
@@ -118,7 +121,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
       {body ? (
         <div className="prose prose-gray max-w-none dark:prose-invert">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+          <RichText value={body} blocks={blocks} />
         </div>
       ) : (
         <p className="text-gray-500 dark:text-gray-400">This post has no content yet.</p>
