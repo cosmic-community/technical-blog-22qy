@@ -1,5 +1,6 @@
 import { isValidElement, type ReactNode } from 'react';
-import type { Heading } from '@/types';
+import type { CosmicFile, Heading } from '@/types';
+import { SITE } from '@/lib/site';
 
 export function slugify(text: string): string {
   return text
@@ -14,6 +15,60 @@ export function slugifyTag(tag: string): string {
   return tag.toLowerCase().trim().replace(/\s+/g, '-');
 }
 
+const COSMIC_IMGIX_HOST = 'https://imgix.cosmicjs.com';
+
+/**
+ * Resolve a Cosmic file metafield to an absolute URL.
+ *
+ * Cosmic returns file metafields in one of two shapes:
+ *   - a media object: { url, imgix_url }
+ *   - a bare filename string: "e2632540-...-photo.jpeg"
+ *
+ * This bucket currently returns bare strings for `cover_image` and `avatar`,
+ * which is why reading `.imgix_url` directly yields `undefined`. Always route
+ * file metafields through this helper.
+ */
+export function resolveMediaUrl(file?: CosmicFile | null): string | undefined {
+  if (!file) return undefined;
+
+  if (typeof file === 'string') {
+    const trimmed = file.trim();
+    if (!trimmed) return undefined;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `${COSMIC_IMGIX_HOST}/${trimmed.replace(/^\/+/, '')}`;
+  }
+
+  if (typeof file === 'object') {
+    const candidate = file.imgix_url || file.url;
+    if (candidate && candidate.trim()) return candidate.trim();
+  }
+
+  return undefined;
+}
+
+/**
+ * Build an imgix-transformed URL at exact Open Graph dimensions (1200x630),
+ * the size X, Facebook, LinkedIn and Slack all render best. Falls back to the
+ * site-wide share image so a post is never shared without a preview card.
+ */
+export function ogImageUrl(file?: CosmicFile | null): string {
+  const resolved = resolveMediaUrl(file) ?? SITE.defaultOgImage;
+  const separator = resolved.includes('?') ? '&' : '?';
+  return `${resolved}${separator}w=1200&h=630&fit=crop&auto=format,compress`;
+}
+
+/** Transform a Cosmic image to arbitrary dimensions for on-page rendering. */
+export function imageUrl(
+  file: CosmicFile | null | undefined,
+  width: number,
+  height: number
+): string | undefined {
+  const resolved = resolveMediaUrl(file);
+  if (!resolved) return undefined;
+  const separator = resolved.includes('?') ? '&' : '?';
+  return `${resolved}${separator}w=${width}&h=${height}&fit=crop&auto=format,compress`;
+}
+
 export function formatDate(dateString?: string): string {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -23,6 +78,37 @@ export function formatDate(dateString?: string): string {
     month: 'long',
     day: 'numeric',
   });
+}
+
+/** ISO-8601 date for structured data and article:published_time. */
+export function toIsoDate(dateString?: string): string | undefined {
+  if (!dateString) return undefined;
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
+
+/**
+ * Clamp a description to a length search engines and social cards will show
+ * without truncating mid-word (~160 chars is the practical meta limit).
+ */
+export function truncateForMeta(text: string | undefined, maxLength = 160): string {
+  if (!text) return '';
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+
+  const clipped = normalized.slice(0, maxLength);
+  const lastSpace = clipped.lastIndexOf(' ');
+  const safe = lastSpace > maxLength * 0.6 ? clipped.slice(0, lastSpace) : clipped;
+  return `${safe.replace(/[.,;:!?-]+$/, '')}…`;
+}
+
+/** Normalize an X/Twitter handle to @name form. */
+export function normalizeHandle(handle?: string): string | undefined {
+  if (!handle) return undefined;
+  const trimmed = handle.trim().replace(/^@+/, '');
+  if (!trimmed) return undefined;
+  return `@${trimmed}`;
 }
 
 export function formatReadingTime(value: unknown): string {
